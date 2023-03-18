@@ -527,24 +527,24 @@ define <8 x i32> @sext_v8i32(<8 x i32> %a) nounwind {
 define <8 x i16> @variable_shl16(<8 x i16> %lhs, <8  x i16> %rhs) {
 ; X32-LABEL: variable_shl16:
 ; X32:       # %bb.0:
-; X32-NEXT:    vpmovzxwd {{.*#+}} ymm1 = xmm1[0],zero,xmm1[1],zero,xmm1[2],zero,xmm1[3],zero,xmm1[4],zero,xmm1[5],zero,xmm1[6],zero,xmm1[7],zero
-; X32-NEXT:    vpmovzxwd {{.*#+}} ymm0 = xmm0[0],zero,xmm0[1],zero,xmm0[2],zero,xmm0[3],zero,xmm0[4],zero,xmm0[5],zero,xmm0[6],zero,xmm0[7],zero
-; X32-NEXT:    vpsllvd %ymm1, %ymm0, %ymm0
-; X32-NEXT:    vpshufb {{.*#+}} ymm0 = ymm0[0,1,4,5,8,9,12,13,u,u,u,u,u,u,u,u,16,17,20,21,24,25,28,29,u,u,u,u,u,u,u,u]
-; X32-NEXT:    vpermq {{.*#+}} ymm0 = ymm0[0,2,2,3]
-; X32-NEXT:    # kill: def $xmm0 killed $xmm0 killed $ymm0
-; X32-NEXT:    vzeroupper
+; X32-NEXT:    vpxor %xmm2, %xmm2, %xmm2
+; X32-NEXT:    vpblendw {{.*#+}} xmm3 = xmm2[0],xmm0[1],xmm2[2],xmm0[3],xmm2[4],xmm0[5],xmm2[6],xmm0[7]
+; X32-NEXT:    vpsrld $16, %xmm1, %xmm4
+; X32-NEXT:    vpsllvd %xmm4, %xmm3, %xmm3
+; X32-NEXT:    vpblendw {{.*#+}} xmm1 = xmm1[0],xmm2[1],xmm1[2],xmm2[3],xmm1[4],xmm2[5],xmm1[6],xmm2[7]
+; X32-NEXT:    vpsllvd %xmm1, %xmm0, %xmm0
+; X32-NEXT:    vpblendw {{.*#+}} xmm0 = xmm0[0],xmm3[1],xmm0[2],xmm3[3],xmm0[4],xmm3[5],xmm0[6],xmm3[7]
 ; X32-NEXT:    retl
 ;
 ; X64-LABEL: variable_shl16:
 ; X64:       # %bb.0:
-; X64-NEXT:    vpmovzxwd {{.*#+}} ymm1 = xmm1[0],zero,xmm1[1],zero,xmm1[2],zero,xmm1[3],zero,xmm1[4],zero,xmm1[5],zero,xmm1[6],zero,xmm1[7],zero
-; X64-NEXT:    vpmovzxwd {{.*#+}} ymm0 = xmm0[0],zero,xmm0[1],zero,xmm0[2],zero,xmm0[3],zero,xmm0[4],zero,xmm0[5],zero,xmm0[6],zero,xmm0[7],zero
-; X64-NEXT:    vpsllvd %ymm1, %ymm0, %ymm0
-; X64-NEXT:    vpshufb {{.*#+}} ymm0 = ymm0[0,1,4,5,8,9,12,13,u,u,u,u,u,u,u,u,16,17,20,21,24,25,28,29,u,u,u,u,u,u,u,u]
-; X64-NEXT:    vpermq {{.*#+}} ymm0 = ymm0[0,2,2,3]
-; X64-NEXT:    # kill: def $xmm0 killed $xmm0 killed $ymm0
-; X64-NEXT:    vzeroupper
+; X64-NEXT:    vpxor %xmm2, %xmm2, %xmm2
+; X64-NEXT:    vpblendw {{.*#+}} xmm3 = xmm2[0],xmm0[1],xmm2[2],xmm0[3],xmm2[4],xmm0[5],xmm2[6],xmm0[7]
+; X64-NEXT:    vpsrld $16, %xmm1, %xmm4
+; X64-NEXT:    vpsllvd %xmm4, %xmm3, %xmm3
+; X64-NEXT:    vpblendw {{.*#+}} xmm1 = xmm1[0],xmm2[1],xmm1[2],xmm2[3],xmm1[4],xmm2[5],xmm1[6],xmm2[7]
+; X64-NEXT:    vpsllvd %xmm1, %xmm0, %xmm0
+; X64-NEXT:    vpblendw {{.*#+}} xmm0 = xmm0[0],xmm3[1],xmm0[2],xmm3[3],xmm0[4],xmm3[5],xmm0[6],xmm3[7]
 ; X64-NEXT:    retq
   %res = shl <8 x i16> %lhs, %rhs
   ret <8 x i16> %res
@@ -553,22 +553,26 @@ define <8 x i16> @variable_shl16(<8 x i16> %lhs, <8  x i16> %rhs) {
 define <8 x i16> @variable_ashr16(<8 x i16> %lhs, <8  x i16> %rhs) {
 ; X32-LABEL: variable_ashr16:
 ; X32:       # %bb.0:
-; X32-NEXT:    vpmovzxwd {{.*#+}} ymm1 = xmm1[0],zero,xmm1[1],zero,xmm1[2],zero,xmm1[3],zero,xmm1[4],zero,xmm1[5],zero,xmm1[6],zero,xmm1[7],zero
-; X32-NEXT:    vpmovsxwd %xmm0, %ymm0
-; X32-NEXT:    vpsravd %ymm1, %ymm0, %ymm0
-; X32-NEXT:    vextracti128 $1, %ymm0, %xmm1
-; X32-NEXT:    vpackssdw %xmm1, %xmm0, %xmm0
-; X32-NEXT:    vzeroupper
+; X32-NEXT:    vpsrld $16, %xmm1, %xmm2
+; X32-NEXT:    vpsravd %xmm2, %xmm0, %xmm2
+; X32-NEXT:    vpxor %xmm3, %xmm3, %xmm3
+; X32-NEXT:    vpblendw {{.*#+}} xmm1 = xmm1[0],xmm3[1],xmm1[2],xmm3[3],xmm1[4],xmm3[5],xmm1[6],xmm3[7]
+; X32-NEXT:    vpslld $16, %xmm0, %xmm0
+; X32-NEXT:    vpsravd %xmm1, %xmm0, %xmm0
+; X32-NEXT:    vpsrld $16, %xmm0, %xmm0
+; X32-NEXT:    vpblendw {{.*#+}} xmm0 = xmm0[0],xmm2[1],xmm0[2],xmm2[3],xmm0[4],xmm2[5],xmm0[6],xmm2[7]
 ; X32-NEXT:    retl
 ;
 ; X64-LABEL: variable_ashr16:
 ; X64:       # %bb.0:
-; X64-NEXT:    vpmovzxwd {{.*#+}} ymm1 = xmm1[0],zero,xmm1[1],zero,xmm1[2],zero,xmm1[3],zero,xmm1[4],zero,xmm1[5],zero,xmm1[6],zero,xmm1[7],zero
-; X64-NEXT:    vpmovsxwd %xmm0, %ymm0
-; X64-NEXT:    vpsravd %ymm1, %ymm0, %ymm0
-; X64-NEXT:    vextracti128 $1, %ymm0, %xmm1
-; X64-NEXT:    vpackssdw %xmm1, %xmm0, %xmm0
-; X64-NEXT:    vzeroupper
+; X64-NEXT:    vpsrld $16, %xmm1, %xmm2
+; X64-NEXT:    vpsravd %xmm2, %xmm0, %xmm2
+; X64-NEXT:    vpxor %xmm3, %xmm3, %xmm3
+; X64-NEXT:    vpblendw {{.*#+}} xmm1 = xmm1[0],xmm3[1],xmm1[2],xmm3[3],xmm1[4],xmm3[5],xmm1[6],xmm3[7]
+; X64-NEXT:    vpslld $16, %xmm0, %xmm0
+; X64-NEXT:    vpsravd %xmm1, %xmm0, %xmm0
+; X64-NEXT:    vpsrld $16, %xmm0, %xmm0
+; X64-NEXT:    vpblendw {{.*#+}} xmm0 = xmm0[0],xmm2[1],xmm0[2],xmm2[3],xmm0[4],xmm2[5],xmm0[6],xmm2[7]
 ; X64-NEXT:    retq
   %res = ashr <8 x i16> %lhs, %rhs
   ret <8 x i16> %res
@@ -577,22 +581,24 @@ define <8 x i16> @variable_ashr16(<8 x i16> %lhs, <8  x i16> %rhs) {
 define <8 x i16> @variable_lshr16(<8 x i16> %lhs, <8  x i16> %rhs) {
 ; X32-LABEL: variable_lshr16:
 ; X32:       # %bb.0:
-; X32-NEXT:    vpmovzxwd {{.*#+}} ymm1 = xmm1[0],zero,xmm1[1],zero,xmm1[2],zero,xmm1[3],zero,xmm1[4],zero,xmm1[5],zero,xmm1[6],zero,xmm1[7],zero
-; X32-NEXT:    vpmovzxwd {{.*#+}} ymm0 = xmm0[0],zero,xmm0[1],zero,xmm0[2],zero,xmm0[3],zero,xmm0[4],zero,xmm0[5],zero,xmm0[6],zero,xmm0[7],zero
-; X32-NEXT:    vpsrlvd %ymm1, %ymm0, %ymm0
-; X32-NEXT:    vextracti128 $1, %ymm0, %xmm1
-; X32-NEXT:    vpackusdw %xmm1, %xmm0, %xmm0
-; X32-NEXT:    vzeroupper
+; X32-NEXT:    vpxor %xmm2, %xmm2, %xmm2
+; X32-NEXT:    vpblendw {{.*#+}} xmm3 = xmm1[0],xmm2[1],xmm1[2],xmm2[3],xmm1[4],xmm2[5],xmm1[6],xmm2[7]
+; X32-NEXT:    vpblendw {{.*#+}} xmm2 = xmm0[0],xmm2[1],xmm0[2],xmm2[3],xmm0[4],xmm2[5],xmm0[6],xmm2[7]
+; X32-NEXT:    vpsrlvd %xmm3, %xmm2, %xmm2
+; X32-NEXT:    vpsrld $16, %xmm1, %xmm1
+; X32-NEXT:    vpsrlvd %xmm1, %xmm0, %xmm0
+; X32-NEXT:    vpblendw {{.*#+}} xmm0 = xmm2[0],xmm0[1],xmm2[2],xmm0[3],xmm2[4],xmm0[5],xmm2[6],xmm0[7]
 ; X32-NEXT:    retl
 ;
 ; X64-LABEL: variable_lshr16:
 ; X64:       # %bb.0:
-; X64-NEXT:    vpmovzxwd {{.*#+}} ymm1 = xmm1[0],zero,xmm1[1],zero,xmm1[2],zero,xmm1[3],zero,xmm1[4],zero,xmm1[5],zero,xmm1[6],zero,xmm1[7],zero
-; X64-NEXT:    vpmovzxwd {{.*#+}} ymm0 = xmm0[0],zero,xmm0[1],zero,xmm0[2],zero,xmm0[3],zero,xmm0[4],zero,xmm0[5],zero,xmm0[6],zero,xmm0[7],zero
-; X64-NEXT:    vpsrlvd %ymm1, %ymm0, %ymm0
-; X64-NEXT:    vextracti128 $1, %ymm0, %xmm1
-; X64-NEXT:    vpackusdw %xmm1, %xmm0, %xmm0
-; X64-NEXT:    vzeroupper
+; X64-NEXT:    vpxor %xmm2, %xmm2, %xmm2
+; X64-NEXT:    vpblendw {{.*#+}} xmm3 = xmm1[0],xmm2[1],xmm1[2],xmm2[3],xmm1[4],xmm2[5],xmm1[6],xmm2[7]
+; X64-NEXT:    vpblendw {{.*#+}} xmm2 = xmm0[0],xmm2[1],xmm0[2],xmm2[3],xmm0[4],xmm2[5],xmm0[6],xmm2[7]
+; X64-NEXT:    vpsrlvd %xmm3, %xmm2, %xmm2
+; X64-NEXT:    vpsrld $16, %xmm1, %xmm1
+; X64-NEXT:    vpsrlvd %xmm1, %xmm0, %xmm0
+; X64-NEXT:    vpblendw {{.*#+}} xmm0 = xmm2[0],xmm0[1],xmm2[2],xmm0[3],xmm2[4],xmm0[5],xmm2[6],xmm0[7]
 ; X64-NEXT:    retq
   %res = lshr <8 x i16> %lhs, %rhs
   ret <8 x i16> %res

@@ -7949,10 +7949,10 @@ define <16 x i16> @pr43230(<16 x i16> %a, <16 x i16> %b) {
 ; AVX2-LABEL: pr43230:
 ; AVX2:       # %bb.0:
 ; AVX2-NEXT:    vpxor %xmm2, %xmm2, %xmm2
-; AVX2-NEXT:    vpunpckhwd {{.*#+}} ymm1 = ymm1[4],ymm2[4],ymm1[5],ymm2[5],ymm1[6],ymm2[6],ymm1[7],ymm2[7],ymm1[12],ymm2[12],ymm1[13],ymm2[13],ymm1[14],ymm2[14],ymm1[15],ymm2[15]
-; AVX2-NEXT:    vpunpckhwd {{.*#+}} ymm0 = ymm2[4],ymm0[4],ymm2[5],ymm0[5],ymm2[6],ymm0[6],ymm2[7],ymm0[7],ymm2[12],ymm0[12],ymm2[13],ymm0[13],ymm2[14],ymm0[14],ymm2[15],ymm0[15]
+; AVX2-NEXT:    vpblendw {{.*#+}} ymm1 = ymm1[0],ymm2[1],ymm1[2],ymm2[3],ymm1[4],ymm2[5],ymm1[6],ymm2[7],ymm1[8],ymm2[9],ymm1[10],ymm2[11],ymm1[12],ymm2[13],ymm1[14],ymm2[15]
+; AVX2-NEXT:    vpblendw {{.*#+}} ymm0 = ymm0[0],ymm2[1],ymm0[2],ymm2[3],ymm0[4],ymm2[5],ymm0[6],ymm2[7],ymm0[8],ymm2[9],ymm0[10],ymm2[11],ymm0[12],ymm2[13],ymm0[14],ymm2[15]
 ; AVX2-NEXT:    vpsrlvd %ymm1, %ymm0, %ymm0
-; AVX2-NEXT:    vpshufb {{.*#+}} ymm0 = zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,zero,ymm0[26,27],zero,zero
+; AVX2-NEXT:    vpand {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %ymm0, %ymm0
 ; AVX2-NEXT:    retq
 ;
 ; AVX512VL-LABEL: pr43230:
@@ -7974,12 +7974,10 @@ define <16 x i16> @pr43230(<16 x i16> %a, <16 x i16> %b) {
 ;
 ; XOPAVX2-LABEL: pr43230:
 ; XOPAVX2:       # %bb.0:
-; XOPAVX2-NEXT:    vextracti128 $1, %ymm1, %xmm1
 ; XOPAVX2-NEXT:    vpxor %xmm2, %xmm2, %xmm2
-; XOPAVX2-NEXT:    vpsubw %xmm1, %xmm2, %xmm1
-; XOPAVX2-NEXT:    vextracti128 $1, %ymm0, %xmm0
-; XOPAVX2-NEXT:    vpshlw %xmm1, %xmm0, %xmm0
-; XOPAVX2-NEXT:    vinserti128 $1, %xmm0, %ymm0, %ymm0
+; XOPAVX2-NEXT:    vpblendw {{.*#+}} ymm1 = ymm1[0],ymm2[1],ymm1[2],ymm2[3],ymm1[4],ymm2[5],ymm1[6],ymm2[7],ymm1[8],ymm2[9],ymm1[10],ymm2[11],ymm1[12],ymm2[13],ymm1[14],ymm2[15]
+; XOPAVX2-NEXT:    vpblendw {{.*#+}} ymm0 = ymm0[0],ymm2[1],ymm0[2],ymm2[3],ymm0[4],ymm2[5],ymm0[6],ymm2[7],ymm0[8],ymm2[9],ymm0[10],ymm2[11],ymm0[12],ymm2[13],ymm0[14],ymm2[15]
+; XOPAVX2-NEXT:    vpsrlvd %ymm1, %ymm0, %ymm0
 ; XOPAVX2-NEXT:    vpand {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %ymm0, %ymm0
 ; XOPAVX2-NEXT:    retq
   %shr = lshr <16 x i16> %a, %b

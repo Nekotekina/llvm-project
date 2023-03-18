@@ -31019,6 +31019,77 @@ static SDValue LowerShift(SDValue Op, const X86Subtarget &Subtarget,
     return DAG.getVectorShuffle(VT, dl, R01, R23, {0, 3, 4, 7});
   }
 
+  // Alternative version of vector-vector shifts for certain types.
+  // Should be more effective with slow cross-lane moves.
+  if (((Subtarget.hasInt256() && !DAG.isSplatValue(Amt) &&
+        (VT == MVT::v8i16 || VT == MVT::v16i16 || VT == MVT::v32i16)) ||
+       (Subtarget.hasBWI() &&
+        ((Subtarget.hasVLX() && (VT == MVT::v16i8 || VT == MVT::v32i8)) ||
+         VT == MVT::v64i8)))) {
+    MVT ExtST = VT.getScalarType() == MVT::i8 ? MVT::i16 : MVT::i32;
+    MVT ExtVT = MVT::getVectorVT(ExtST, VT.getVectorNumElements() / 2);
+    MVT Ext32 = ExtVT;
+    if (VT.getScalarType() == MVT::i8)
+      Ext32 = MVT::getVectorVT(MVT::i32, ExtVT.getVectorNumElements() / 2);
+    int ShC = ExtST == MVT::i16 ? 8 : 16;
+    unsigned MaskValue = ExtST == MVT::i16 ? 0xff00ff00U : 0xffff0000U;
+    SDValue MaskH;
+    SDValue AH;
+    SDValue RH;
+
+    R = DAG.getBitcast(ExtVT, R);
+    RH = DAG.getBitcast(ExtVT, R);
+    MaskH = DAG.getConstant(MaskValue, dl, Ext32);
+    AH = DAG.getBitcast(ExtVT, Amt);
+    AH = DAG.getNode(ISD::SRL, dl, ExtVT, AH, DAG.getConstant(ShC, dl, ExtVT));
+
+    if (DAG.isSplatValue(Amt)) {
+      Amt = AH;
+    } else {
+      Amt = DAG.getBitcast(Ext32, Amt);
+      Amt = DAG.getNode(X86ISD::ANDNP, dl, Ext32, MaskH, Amt);
+      Amt = DAG.getBitcast(ExtVT, Amt);
+    }
+
+    if (Op->getOpcode() == ISD::SHL) {
+      RH = DAG.getBitcast(Ext32, R);
+      RH = DAG.getNode(ISD::AND, dl, Ext32, RH, MaskH);
+      RH = DAG.getBitcast(ExtVT, RH);
+    }
+    if (Op->getOpcode() == ISD::SRL) {
+      R = DAG.getBitcast(Ext32, R);
+      R = DAG.getNode(X86ISD::ANDNP, dl, Ext32, MaskH, R);
+      R = DAG.getBitcast(ExtVT, R);
+    }
+    if (Op->getOpcode() == ISD::SRA) {
+      R = DAG.getNode(ISD::SHL, dl, ExtVT, R, DAG.getConstant(ShC, dl, ExtVT));
+    }
+    RH = DAG.getNode(Op->getOpcode(), dl, ExtVT, RH, AH);
+    R = DAG.getNode(Op->getOpcode(), dl, ExtVT, R, Amt);
+    if (Op->getOpcode() == ISD::SRA) {
+      R = DAG.getNode(ISD::SRL, dl, ExtVT, R, DAG.getConstant(ShC, dl, ExtVT));
+    }
+
+    // Merge high and low results (Mask ? RH : R)
+    if (Subtarget.hasVLX() || VT.getSizeInBits() == 512) {
+      R = DAG.getNode(X86ISD::VPTERNLOG, dl, Ext32, DAG.getBitcast(Ext32, RH),
+                      DAG.getBitcast(Ext32, R), MaskH,
+                      DAG.getTargetConstant(0xe4, dl, MVT::i8));
+    } else if (VT.getScalarType() == MVT::i8) {
+      R = DAG.getBitcast(Ext32, R);
+      RH = DAG.getBitcast(Ext32, RH);
+      R = DAG.getNode(ISD::OR, dl, Ext32,
+                      DAG.getNode(ISD::AND, dl, Ext32, RH, MaskH),
+                      DAG.getNode(X86ISD::ANDNP, dl, Ext32, MaskH, R));
+    } else {
+      R = DAG.getNode(X86ISD::BLENDI, dl, VT, DAG.getBitcast(VT, R),
+                      DAG.getBitcast(VT, RH),
+                      DAG.getTargetConstant(0xaa, dl, MVT::i8));
+    }
+
+    return DAG.getBitcast(VT, R);
+  }
+
   // It's worth extending once and using the vXi16/vXi32 shifts for smaller
   // types, but without AVX512 the extra overheads to get from vXi8 to vXi32
   // make the existing SSE solution better.
@@ -31379,6 +31450,20 @@ static SDValue LowerFunnelShift(SDValue Op, const X86Subtarget &Subtarget,
     if (supportedVectorVarShift(VT, Subtarget, ShiftOpc) || Subtarget.hasXOP())
       return SDValue();
 
+    // Attempt to fold per-element (ExtVT) shift as unpack(y,x) << zext(z)
+    if (Subtarget.hasAVX2() &&
+        !supportedVectorVarShift(VT, Subtarget, ShiftOpc) &&
+        supportedVectorVarShift(ExtVT, Subtarget, ShiftOpc)) {
+      SDValue Z = DAG.getConstant(0, DL, VT);
+      SDValue RLo = DAG.getBitcast(ExtVT, getUnpackl(DAG, DL, VT, Op1, Op0));
+      SDValue RHi = DAG.getBitcast(ExtVT, getUnpackh(DAG, DL, VT, Op1, Op0));
+      SDValue ALo = DAG.getBitcast(ExtVT, getUnpackl(DAG, DL, VT, AmtMod, Z));
+      SDValue AHi = DAG.getBitcast(ExtVT, getUnpackh(DAG, DL, VT, AmtMod, Z));
+      SDValue Lo = DAG.getNode(ShiftOpc, DL, ExtVT, RLo, ALo);
+      SDValue Hi = DAG.getNode(ShiftOpc, DL, ExtVT, RHi, AHi);
+      return getPack(DAG, Subtarget, DL, VT, Lo, Hi, !IsFSHR);
+    }
+
     // Attempt to fold as:
     // fshl(x,y,z) -> (((aext(x) << bw) | zext(y)) << (z & (bw-1))) >> bw.
     // fshr(x,y,z) -> (((aext(x) << bw) | zext(y)) >> (z & (bw-1))).
@@ -31574,14 +31659,30 @@ static SDValue LowerRotate(SDValue Op, const X86Subtarget &Subtarget,
     }
   }
 
+  bool IsConstAmt = ISD::isBuildVectorOfConstantSDNodes(Amt.getNode());
+  unsigned ShiftOpc = IsROTL ? ISD::SHL : ISD::SRL;
+
+  // Attempt to fold as unpack(x,x) << zext(y):
+  // rotl(x,y) -> (unpack(x,x) << (y & (bw-1))) >> bw.
+  // rotr(x,y) -> (unpack(x,x) >> (y & (bw-1))).
+  if (Subtarget.hasAVX2() && !IsConstAmt &&
+      !supportedVectorVarShift(VT, Subtarget, ShiftOpc) &&
+      supportedVectorVarShift(ExtVT, Subtarget, ShiftOpc)) {
+    SDValue RLo = DAG.getBitcast(ExtVT, getUnpackl(DAG, DL, VT, R, R));
+    SDValue RHi = DAG.getBitcast(ExtVT, getUnpackh(DAG, DL, VT, R, R));
+    SDValue ALo = DAG.getBitcast(ExtVT, getUnpackl(DAG, DL, VT, AmtMod, Z));
+    SDValue AHi = DAG.getBitcast(ExtVT, getUnpackh(DAG, DL, VT, AmtMod, Z));
+    SDValue Lo = DAG.getNode(ShiftOpc, DL, ExtVT, RLo, ALo);
+    SDValue Hi = DAG.getNode(ShiftOpc, DL, ExtVT, RHi, AHi);
+    return getPack(DAG, Subtarget, DL, VT, Lo, Hi, IsROTL);
+  }
+
   // v16i8/v32i8/v64i8: Split rotation into rot4/rot2/rot1 stages and select by
   // the amount bit.
   // TODO: We're doing nothing here that we couldn't do for funnel shifts.
   if (EltSizeInBits == 8) {
-    bool IsConstAmt = ISD::isBuildVectorOfConstantSDNodes(Amt.getNode());
     MVT WideVT =
-        MVT::getVectorVT(Subtarget.hasBWI() ? MVT::i16 : MVT::i32, NumElts);
-    unsigned ShiftOpc = IsROTL ? ISD::SHL : ISD::SRL;
+      MVT::getVectorVT(Subtarget.hasBWI() ? MVT::i16 : MVT::i32, NumElts);
 
     // Attempt to fold as:
     // rotl(x,y) -> (((aext(x) << bw) | zext(x)) << (y & (bw-1))) >> bw.

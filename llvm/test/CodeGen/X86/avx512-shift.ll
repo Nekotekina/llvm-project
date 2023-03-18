@@ -164,11 +164,14 @@ define <4 x i64> @variable_sra3(<4 x i64> %x, <4 x i64> %y) {
 define <8 x i16> @variable_sra4(<8 x i16> %x, <8 x i16> %y) {
 ; KNL-LABEL: variable_sra4:
 ; KNL:       # %bb.0:
-; KNL-NEXT:    vpmovzxwd {{.*#+}} ymm1 = xmm1[0],zero,xmm1[1],zero,xmm1[2],zero,xmm1[3],zero,xmm1[4],zero,xmm1[5],zero,xmm1[6],zero,xmm1[7],zero
-; KNL-NEXT:    vpmovsxwd %xmm0, %ymm0
-; KNL-NEXT:    vpsravd %ymm1, %ymm0, %ymm0
-; KNL-NEXT:    vpmovdw %zmm0, %ymm0
-; KNL-NEXT:    # kill: def $xmm0 killed $xmm0 killed $ymm0
+; KNL-NEXT:    vpsrld $16, %xmm1, %xmm2
+; KNL-NEXT:    vpsravd %xmm2, %xmm0, %xmm2
+; KNL-NEXT:    vpxor %xmm3, %xmm3, %xmm3
+; KNL-NEXT:    vpblendw {{.*#+}} xmm1 = xmm1[0],xmm3[1],xmm1[2],xmm3[3],xmm1[4],xmm3[5],xmm1[6],xmm3[7]
+; KNL-NEXT:    vpslld $16, %xmm0, %xmm0
+; KNL-NEXT:    vpsravd %xmm1, %xmm0, %xmm0
+; KNL-NEXT:    vpsrld $16, %xmm0, %xmm0
+; KNL-NEXT:    vpblendw {{.*#+}} xmm0 = xmm0[0],xmm2[1],xmm0[2],xmm2[3],xmm0[4],xmm2[5],xmm0[6],xmm2[7]
 ; KNL-NEXT:    retq
 ;
 ; SKX-LABEL: variable_sra4:

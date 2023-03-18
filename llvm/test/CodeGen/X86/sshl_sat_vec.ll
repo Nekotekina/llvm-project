@@ -339,22 +339,23 @@ define <8 x i16> @vec_v8i16(<8 x i16> %x, <8 x i16> %y) nounwind {
 ;
 ; X64-AVX2-LABEL: vec_v8i16:
 ; X64-AVX2:       # %bb.0:
-; X64-AVX2-NEXT:    vpmovzxwd {{.*#+}} ymm1 = xmm1[0],zero,xmm1[1],zero,xmm1[2],zero,xmm1[3],zero,xmm1[4],zero,xmm1[5],zero,xmm1[6],zero,xmm1[7],zero
-; X64-AVX2-NEXT:    vpmovzxwd {{.*#+}} ymm2 = xmm0[0],zero,xmm0[1],zero,xmm0[2],zero,xmm0[3],zero,xmm0[4],zero,xmm0[5],zero,xmm0[6],zero,xmm0[7],zero
-; X64-AVX2-NEXT:    vpsllvd %ymm1, %ymm2, %ymm2
-; X64-AVX2-NEXT:    vpshufb {{.*#+}} ymm2 = ymm2[0,1,4,5,8,9,12,13,u,u,u,u,u,u,u,u,16,17,20,21,24,25,28,29,u,u,u,u,u,u,u,u]
-; X64-AVX2-NEXT:    vpermq {{.*#+}} ymm2 = ymm2[0,2,2,3]
-; X64-AVX2-NEXT:    vpmovsxwd %xmm2, %ymm3
-; X64-AVX2-NEXT:    vpsravd %ymm1, %ymm3, %ymm1
-; X64-AVX2-NEXT:    vextracti128 $1, %ymm1, %xmm3
-; X64-AVX2-NEXT:    vpackssdw %xmm3, %xmm1, %xmm1
+; X64-AVX2-NEXT:    vpxor %xmm2, %xmm2, %xmm2
+; X64-AVX2-NEXT:    vpblendw {{.*#+}} xmm3 = xmm2[0],xmm0[1],xmm2[2],xmm0[3],xmm2[4],xmm0[5],xmm2[6],xmm0[7]
+; X64-AVX2-NEXT:    vpsrld $16, %xmm1, %xmm4
+; X64-AVX2-NEXT:    vpsllvd %xmm4, %xmm3, %xmm3
+; X64-AVX2-NEXT:    vpblendw {{.*#+}} xmm1 = xmm1[0],xmm2[1],xmm1[2],xmm2[3],xmm1[4],xmm2[5],xmm1[6],xmm2[7]
+; X64-AVX2-NEXT:    vpsllvd %xmm1, %xmm0, %xmm5
+; X64-AVX2-NEXT:    vpblendw {{.*#+}} xmm3 = xmm5[0],xmm3[1],xmm5[2],xmm3[3],xmm5[4],xmm3[5],xmm5[6],xmm3[7]
+; X64-AVX2-NEXT:    vpsravd %xmm4, %xmm3, %xmm4
+; X64-AVX2-NEXT:    vpslld $16, %xmm3, %xmm5
+; X64-AVX2-NEXT:    vpsravd %xmm1, %xmm5, %xmm1
+; X64-AVX2-NEXT:    vpsrld $16, %xmm1, %xmm1
+; X64-AVX2-NEXT:    vpblendw {{.*#+}} xmm1 = xmm1[0],xmm4[1],xmm1[2],xmm4[3],xmm1[4],xmm4[5],xmm1[6],xmm4[7]
 ; X64-AVX2-NEXT:    vpcmpeqw %xmm1, %xmm0, %xmm1
-; X64-AVX2-NEXT:    vpxor %xmm3, %xmm3, %xmm3
-; X64-AVX2-NEXT:    vpcmpgtw %xmm0, %xmm3, %xmm0
-; X64-AVX2-NEXT:    vmovdqa {{.*#+}} xmm3 = [32767,32767,32767,32767,32767,32767,32767,32767]
-; X64-AVX2-NEXT:    vpblendvb %xmm0, {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm3, %xmm0
-; X64-AVX2-NEXT:    vpblendvb %xmm1, %xmm2, %xmm0, %xmm0
-; X64-AVX2-NEXT:    vzeroupper
+; X64-AVX2-NEXT:    vpcmpgtw %xmm0, %xmm2, %xmm0
+; X64-AVX2-NEXT:    vmovdqa {{.*#+}} xmm2 = [32767,32767,32767,32767,32767,32767,32767,32767]
+; X64-AVX2-NEXT:    vpblendvb %xmm0, {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm2, %xmm0
+; X64-AVX2-NEXT:    vpblendvb %xmm1, %xmm3, %xmm0, %xmm0
 ; X64-AVX2-NEXT:    retq
 ;
 ; X86-LABEL: vec_v8i16:

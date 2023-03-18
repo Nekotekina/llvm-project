@@ -418,18 +418,21 @@ define <16 x i8> @combine_vec_sdiv_by_pow2b_v16i8(<16 x i8> %x) {
 ; AVX512BW:       # %bb.0:
 ; AVX512BW-NEXT:    vpxor %xmm1, %xmm1, %xmm1
 ; AVX512BW-NEXT:    vpcmpgtb %xmm0, %xmm1, %xmm1
-; AVX512BW-NEXT:    vpmovzxbw {{.*#+}} ymm1 = xmm1[0],zero,xmm1[1],zero,xmm1[2],zero,xmm1[3],zero,xmm1[4],zero,xmm1[5],zero,xmm1[6],zero,xmm1[7],zero,xmm1[8],zero,xmm1[9],zero,xmm1[10],zero,xmm1[11],zero,xmm1[12],zero,xmm1[13],zero,xmm1[14],zero,xmm1[15],zero
-; AVX512BW-NEXT:    vpsrlvw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %ymm1, %ymm1
-; AVX512BW-NEXT:    vpmovwb %ymm1, %xmm1
+; AVX512BW-NEXT:    vpsrlvw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm1, %xmm2
+; AVX512BW-NEXT:    vpbroadcastd {{.*#+}} xmm3 = [4278255360,4278255360,4278255360,4278255360]
+; AVX512BW-NEXT:    vpandn %xmm1, %xmm3, %xmm1
+; AVX512BW-NEXT:    vpsrlvw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm1, %xmm1
+; AVX512BW-NEXT:    vpternlogd $216, %xmm3, %xmm2, %xmm1
 ; AVX512BW-NEXT:    vpaddb %xmm1, %xmm0, %xmm1
-; AVX512BW-NEXT:    vpmovsxbw %xmm1, %ymm1
-; AVX512BW-NEXT:    vpsravw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %ymm1, %ymm1
-; AVX512BW-NEXT:    vpmovwb %ymm1, %xmm1
+; AVX512BW-NEXT:    vpsravw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm1, %xmm2
+; AVX512BW-NEXT:    vpsllw $8, %xmm1, %xmm1
+; AVX512BW-NEXT:    vpsravw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm1, %xmm1
+; AVX512BW-NEXT:    vpsrlw $8, %xmm1, %xmm1
+; AVX512BW-NEXT:    vpternlogd $216, %xmm3, %xmm2, %xmm1
 ; AVX512BW-NEXT:    movw $257, %ax # imm = 0x101
 ; AVX512BW-NEXT:    kmovd %eax, %k1
 ; AVX512BW-NEXT:    vmovdqu8 %xmm0, %xmm1 {%k1}
 ; AVX512BW-NEXT:    vmovdqa %xmm1, %xmm0
-; AVX512BW-NEXT:    vzeroupper
 ; AVX512BW-NEXT:    retq
 ;
 ; XOP-LABEL: combine_vec_sdiv_by_pow2b_v16i8:
@@ -518,11 +521,12 @@ define <8 x i16> @combine_vec_sdiv_by_pow2b_v8i16(<8 x i16> %x) {
 ; AVX512F-NEXT:    vpsraw $15, %xmm0, %xmm1
 ; AVX512F-NEXT:    vpmulhuw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm1, %xmm1
 ; AVX512F-NEXT:    vpaddw %xmm1, %xmm0, %xmm1
-; AVX512F-NEXT:    vpmovsxwd %xmm1, %ymm1
-; AVX512F-NEXT:    vpsravd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %ymm1, %ymm1
-; AVX512F-NEXT:    vpmovdw %zmm1, %ymm1
+; AVX512F-NEXT:    vpsravd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm1, %xmm2
+; AVX512F-NEXT:    vpslld $16, %xmm1, %xmm1
+; AVX512F-NEXT:    vpsravd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm1, %xmm1
+; AVX512F-NEXT:    vpsrld $16, %xmm1, %xmm1
+; AVX512F-NEXT:    vpblendw {{.*#+}} xmm1 = xmm1[0],xmm2[1],xmm1[2],xmm2[3],xmm1[4],xmm2[5],xmm1[6],xmm2[7]
 ; AVX512F-NEXT:    vpblendw {{.*#+}} xmm0 = xmm0[0],xmm1[1,2,3,4,5,6,7]
-; AVX512F-NEXT:    vzeroupper
 ; AVX512F-NEXT:    retq
 ;
 ; AVX512BW-LABEL: combine_vec_sdiv_by_pow2b_v8i16:
@@ -669,9 +673,11 @@ define <16 x i16> @combine_vec_sdiv_by_pow2b_v16i16(<16 x i16> %x) {
 ; AVX512F-NEXT:    vpsraw $15, %ymm0, %ymm1
 ; AVX512F-NEXT:    vpmulhuw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %ymm1, %ymm1
 ; AVX512F-NEXT:    vpaddw %ymm1, %ymm0, %ymm1
-; AVX512F-NEXT:    vpmovsxwd %ymm1, %zmm1
-; AVX512F-NEXT:    vpsravd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %zmm1, %zmm1
-; AVX512F-NEXT:    vpmovdw %zmm1, %ymm1
+; AVX512F-NEXT:    vpsravd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %ymm1, %ymm2
+; AVX512F-NEXT:    vpslld $16, %ymm1, %ymm1
+; AVX512F-NEXT:    vpsravd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %ymm1, %ymm1
+; AVX512F-NEXT:    vpsrld $16, %ymm1, %ymm1
+; AVX512F-NEXT:    vpblendw {{.*#+}} ymm1 = ymm1[0],ymm2[1],ymm1[2],ymm2[3],ymm1[4],ymm2[5],ymm1[6],ymm2[7],ymm1[8],ymm2[9],ymm1[10],ymm2[11],ymm1[12],ymm2[13],ymm1[14],ymm2[15]
 ; AVX512F-NEXT:    vpblendw {{.*#+}} ymm0 = ymm0[0],ymm1[1,2,3,4,5,6,7],ymm0[8],ymm1[9,10,11,12,13,14,15]
 ; AVX512F-NEXT:    retq
 ;
@@ -927,23 +933,23 @@ define <32 x i16> @combine_vec_sdiv_by_pow2b_v32i16(<32 x i16> %x) {
 ; AVX512F-LABEL: combine_vec_sdiv_by_pow2b_v32i16:
 ; AVX512F:       # %bb.0:
 ; AVX512F-NEXT:    vpsraw $15, %ymm0, %ymm1
-; AVX512F-NEXT:    vbroadcasti128 {{.*#+}} ymm2 = [0,4,2,16,8,32,64,2,0,4,2,16,8,32,64,2]
-; AVX512F-NEXT:    # ymm2 = mem[0,1,0,1]
-; AVX512F-NEXT:    vpmulhuw %ymm2, %ymm1, %ymm1
+; AVX512F-NEXT:    vextracti64x4 $1, %zmm0, %ymm2
+; AVX512F-NEXT:    vpsraw $15, %ymm2, %ymm3
+; AVX512F-NEXT:    vinserti64x4 $1, %ymm3, %zmm1, %zmm1
+; AVX512F-NEXT:    vpsrlvd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %zmm1, %zmm3
+; AVX512F-NEXT:    vpbroadcastd {{.*#+}} zmm4 = [4294901760,4294901760,4294901760,4294901760,4294901760,4294901760,4294901760,4294901760,4294901760,4294901760,4294901760,4294901760,4294901760,4294901760,4294901760,4294901760]
+; AVX512F-NEXT:    vpandnd %zmm1, %zmm4, %zmm1
+; AVX512F-NEXT:    vpsrlvd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %zmm1, %zmm1
+; AVX512F-NEXT:    vpternlogd $216, %zmm4, %zmm3, %zmm1
+; AVX512F-NEXT:    vextracti64x4 $1, %zmm1, %ymm3
+; AVX512F-NEXT:    vpaddw %ymm3, %ymm2, %ymm2
 ; AVX512F-NEXT:    vpaddw %ymm1, %ymm0, %ymm1
-; AVX512F-NEXT:    vpmovsxwd %ymm1, %zmm1
-; AVX512F-NEXT:    vbroadcasti64x4 {{.*#+}} zmm3 = [0,2,1,4,3,5,6,1,0,2,1,4,3,5,6,1]
-; AVX512F-NEXT:    # zmm3 = mem[0,1,2,3,0,1,2,3]
-; AVX512F-NEXT:    vpsravd %zmm3, %zmm1, %zmm1
-; AVX512F-NEXT:    vpmovdw %zmm1, %ymm1
-; AVX512F-NEXT:    vextracti64x4 $1, %zmm0, %ymm4
-; AVX512F-NEXT:    vpsraw $15, %ymm4, %ymm5
-; AVX512F-NEXT:    vpmulhuw %ymm2, %ymm5, %ymm2
-; AVX512F-NEXT:    vpaddw %ymm2, %ymm4, %ymm2
-; AVX512F-NEXT:    vpmovsxwd %ymm2, %zmm2
-; AVX512F-NEXT:    vpsravd %zmm3, %zmm2, %zmm2
-; AVX512F-NEXT:    vpmovdw %zmm2, %ymm2
 ; AVX512F-NEXT:    vinserti64x4 $1, %ymm2, %zmm1, %zmm1
+; AVX512F-NEXT:    vpsravd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %zmm1, %zmm2
+; AVX512F-NEXT:    vpslld $16, %zmm1, %zmm1
+; AVX512F-NEXT:    vpsravd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %zmm1, %zmm1
+; AVX512F-NEXT:    vpsrld $16, %zmm1, %zmm1
+; AVX512F-NEXT:    vpternlogd $216, %zmm4, %zmm2, %zmm1
 ; AVX512F-NEXT:    vbroadcasti32x4 {{.*#+}} zmm2 = [0,65535,65535,65535,65535,65535,65535,65535,0,65535,65535,65535,65535,65535,65535,65535,0,65535,65535,65535,65535,65535,65535,65535,0,65535,65535,65535,65535,65535,65535,65535]
 ; AVX512F-NEXT:    # zmm2 = mem[0,1,2,3,0,1,2,3,0,1,2,3,0,1,2,3]
 ; AVX512F-NEXT:    vpternlogq $216, %zmm2, %zmm1, %zmm0
@@ -2279,13 +2285,17 @@ define <16 x i8> @non_splat_minus_one_divisor_1(<16 x i8> %A) {
 ; AVX512BW:       # %bb.0:
 ; AVX512BW-NEXT:    vpxor %xmm1, %xmm1, %xmm1
 ; AVX512BW-NEXT:    vpcmpgtb %xmm0, %xmm1, %xmm2
-; AVX512BW-NEXT:    vpmovzxbw {{.*#+}} ymm2 = xmm2[0],zero,xmm2[1],zero,xmm2[2],zero,xmm2[3],zero,xmm2[4],zero,xmm2[5],zero,xmm2[6],zero,xmm2[7],zero,xmm2[8],zero,xmm2[9],zero,xmm2[10],zero,xmm2[11],zero,xmm2[12],zero,xmm2[13],zero,xmm2[14],zero,xmm2[15],zero
-; AVX512BW-NEXT:    vpsrlvw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %ymm2, %ymm2
-; AVX512BW-NEXT:    vpmovwb %ymm2, %xmm2
+; AVX512BW-NEXT:    vpsrlvw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm2, %xmm3
+; AVX512BW-NEXT:    vpbroadcastd {{.*#+}} xmm4 = [4278255360,4278255360,4278255360,4278255360]
+; AVX512BW-NEXT:    vpandn %xmm2, %xmm4, %xmm2
+; AVX512BW-NEXT:    vpsrlvw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm2, %xmm2
+; AVX512BW-NEXT:    vpternlogd $216, %xmm4, %xmm3, %xmm2
 ; AVX512BW-NEXT:    vpaddb %xmm2, %xmm0, %xmm2
-; AVX512BW-NEXT:    vpmovsxbw %xmm2, %ymm2
-; AVX512BW-NEXT:    vpsravw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %ymm2, %ymm2
-; AVX512BW-NEXT:    vpmovwb %ymm2, %xmm2
+; AVX512BW-NEXT:    vpsravw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm2, %xmm3
+; AVX512BW-NEXT:    vpsllw $8, %xmm2, %xmm2
+; AVX512BW-NEXT:    vpsravw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm2, %xmm2
+; AVX512BW-NEXT:    vpsrlw $8, %xmm2, %xmm2
+; AVX512BW-NEXT:    vpternlogd $216, %xmm4, %xmm3, %xmm2
 ; AVX512BW-NEXT:    movw $443, %ax # imm = 0x1BB
 ; AVX512BW-NEXT:    kmovd %eax, %k1
 ; AVX512BW-NEXT:    vmovdqu8 %xmm0, %xmm2 {%k1}
@@ -2293,7 +2303,6 @@ define <16 x i8> @non_splat_minus_one_divisor_1(<16 x i8> %A) {
 ; AVX512BW-NEXT:    movw $24132, %ax # imm = 0x5E44
 ; AVX512BW-NEXT:    kmovd %eax, %k1
 ; AVX512BW-NEXT:    vmovdqu8 %xmm2, %xmm0 {%k1}
-; AVX512BW-NEXT:    vzeroupper
 ; AVX512BW-NEXT:    retq
 ;
 ; XOP-LABEL: non_splat_minus_one_divisor_1:
@@ -2719,12 +2728,13 @@ define <8 x i16> @combine_vec_sdiv_nonuniform5(<8 x i16> %x) {
 ; AVX512F-NEXT:    vpmullw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm0, %xmm1
 ; AVX512F-NEXT:    vpmulhw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm0, %xmm0
 ; AVX512F-NEXT:    vpaddw %xmm1, %xmm0, %xmm0
-; AVX512F-NEXT:    vpsrlw $15, %xmm0, %xmm1
-; AVX512F-NEXT:    vpmovsxwd %xmm0, %ymm0
-; AVX512F-NEXT:    vpsravd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %ymm0, %ymm0
-; AVX512F-NEXT:    vpmovdw %zmm0, %ymm0
-; AVX512F-NEXT:    vpaddw %xmm1, %xmm0, %xmm0
-; AVX512F-NEXT:    vzeroupper
+; AVX512F-NEXT:    vpsravd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm0, %xmm1
+; AVX512F-NEXT:    vpslld $16, %xmm0, %xmm2
+; AVX512F-NEXT:    vpsravd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm2, %xmm2
+; AVX512F-NEXT:    vpsrld $16, %xmm2, %xmm2
+; AVX512F-NEXT:    vpblendw {{.*#+}} xmm1 = xmm2[0],xmm1[1],xmm2[2],xmm1[3],xmm2[4],xmm1[5],xmm2[6],xmm1[7]
+; AVX512F-NEXT:    vpsrlw $15, %xmm0, %xmm0
+; AVX512F-NEXT:    vpaddw %xmm0, %xmm1, %xmm0
 ; AVX512F-NEXT:    retq
 ;
 ; AVX512BW-LABEL: combine_vec_sdiv_nonuniform5:
@@ -2831,14 +2841,15 @@ define <8 x i16> @combine_vec_sdiv_nonuniform6(<8 x i16> %x) {
 ; AVX512F-NEXT:    vpmullw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm0, %xmm1
 ; AVX512F-NEXT:    vpmulhw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm0, %xmm0
 ; AVX512F-NEXT:    vpaddw %xmm1, %xmm0, %xmm0
-; AVX512F-NEXT:    vpsrlw $15, %xmm0, %xmm1
+; AVX512F-NEXT:    vpsravd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm0, %xmm1
+; AVX512F-NEXT:    vpslld $16, %xmm0, %xmm2
+; AVX512F-NEXT:    vpsravd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm2, %xmm2
+; AVX512F-NEXT:    vpsrld $16, %xmm2, %xmm2
+; AVX512F-NEXT:    vpblendw {{.*#+}} xmm1 = xmm2[0],xmm1[1],xmm2[2],xmm1[3],xmm2[4],xmm1[5],xmm2[6],xmm1[7]
+; AVX512F-NEXT:    vpsrlw $15, %xmm0, %xmm0
 ; AVX512F-NEXT:    vpxor %xmm2, %xmm2, %xmm2
-; AVX512F-NEXT:    vpblendw {{.*#+}} xmm1 = xmm1[0,1,2],xmm2[3,4],xmm1[5,6,7]
-; AVX512F-NEXT:    vpmovsxwd %xmm0, %ymm0
-; AVX512F-NEXT:    vpsravd {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %ymm0, %ymm0
-; AVX512F-NEXT:    vpmovdw %zmm0, %ymm0
-; AVX512F-NEXT:    vpaddw %xmm1, %xmm0, %xmm0
-; AVX512F-NEXT:    vzeroupper
+; AVX512F-NEXT:    vpblendw {{.*#+}} xmm0 = xmm0[0,1,2],xmm2[3,4],xmm0[5,6,7]
+; AVX512F-NEXT:    vpaddw %xmm0, %xmm1, %xmm0
 ; AVX512F-NEXT:    retq
 ;
 ; AVX512BW-LABEL: combine_vec_sdiv_nonuniform6:
@@ -3018,12 +3029,13 @@ define <16 x i8> @pr38658(<16 x i8> %x) {
 ; AVX512BW-NEXT:    vpsrlw $8, %ymm1, %ymm1
 ; AVX512BW-NEXT:    vpmovwb %ymm1, %xmm1
 ; AVX512BW-NEXT:    vpaddb %xmm0, %xmm1, %xmm0
-; AVX512BW-NEXT:    vpsrlw $7, %xmm0, %xmm1
-; AVX512BW-NEXT:    vpand {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm1, %xmm1
-; AVX512BW-NEXT:    vpmovsxbw %xmm0, %ymm0
-; AVX512BW-NEXT:    vpsravw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %ymm0, %ymm0
-; AVX512BW-NEXT:    vpmovwb %ymm0, %xmm0
-; AVX512BW-NEXT:    vpaddb %xmm1, %xmm0, %xmm0
+; AVX512BW-NEXT:    vpsravw {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm0, %xmm1
+; AVX512BW-NEXT:    vpsllw $8, %xmm0, %xmm2
+; AVX512BW-NEXT:    vpsrlw $8, %xmm2, %xmm2
+; AVX512BW-NEXT:    vpternlogd $216, {{\.?LCPI[0-9]+_[0-9]+}}(%rip){1to4}, %xmm1, %xmm2
+; AVX512BW-NEXT:    vpsrlw $7, %xmm0, %xmm0
+; AVX512BW-NEXT:    vpand {{\.?LCPI[0-9]+_[0-9]+}}(%rip), %xmm0, %xmm0
+; AVX512BW-NEXT:    vpaddb %xmm0, %xmm2, %xmm0
 ; AVX512BW-NEXT:    vzeroupper
 ; AVX512BW-NEXT:    retq
 ;

@@ -39,14 +39,15 @@ define i32 @or_lshr_commute1(i32 %x0, i32 %x1, i32 %y, i32 %z) {
 define <8 x i16> @or_lshr_commute2(<8 x i16> %x0, <8 x i16> %x1, <8 x i16> %y, <8 x i16> %z) {
 ; CHECK-LABEL: or_lshr_commute2:
 ; CHECK:       # %bb.0:
+; CHECK-NEXT:    vpxor %xmm4, %xmm4, %xmm4
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm5 = xmm2[0],xmm4[1],xmm2[2],xmm4[3],xmm2[4],xmm4[5],xmm2[6],xmm4[7]
 ; CHECK-NEXT:    vpor %xmm1, %xmm0, %xmm0
-; CHECK-NEXT:    vpmovzxwd {{.*#+}} ymm0 = xmm0[0],zero,xmm0[1],zero,xmm0[2],zero,xmm0[3],zero,xmm0[4],zero,xmm0[5],zero,xmm0[6],zero,xmm0[7],zero
-; CHECK-NEXT:    vpmovzxwd {{.*#+}} ymm1 = xmm2[0],zero,xmm2[1],zero,xmm2[2],zero,xmm2[3],zero,xmm2[4],zero,xmm2[5],zero,xmm2[6],zero,xmm2[7],zero
-; CHECK-NEXT:    vpsrlvd %ymm1, %ymm0, %ymm0
-; CHECK-NEXT:    vextracti128 $1, %ymm0, %xmm1
-; CHECK-NEXT:    vpackusdw %xmm1, %xmm0, %xmm0
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm1 = xmm0[0],xmm4[1],xmm0[2],xmm4[3],xmm0[4],xmm4[5],xmm0[6],xmm4[7]
+; CHECK-NEXT:    vpsrlvd %xmm5, %xmm1, %xmm1
+; CHECK-NEXT:    vpsrld $16, %xmm2, %xmm2
+; CHECK-NEXT:    vpsrlvd %xmm2, %xmm0, %xmm0
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm0 = xmm1[0],xmm0[1],xmm1[2],xmm0[3],xmm1[4],xmm0[5],xmm1[6],xmm0[7]
 ; CHECK-NEXT:    vpor %xmm3, %xmm0, %xmm0
-; CHECK-NEXT:    vzeroupper
 ; CHECK-NEXT:    retq
   %sh1 = lshr <8 x i16> %x0, %y
   %sh2 = lshr <8 x i16> %x1, %y
@@ -208,14 +209,15 @@ define <2 x i64> @or_shl_commute2(<2 x i64> %x0, <2 x i64> %x1, <2 x i64> %y, <2
 define <8 x i16> @or_shl_commute3(<8 x i16> %x0, <8 x i16> %x1, <8 x i16> %y, <8 x i16> %z) {
 ; CHECK-LABEL: or_shl_commute3:
 ; CHECK:       # %bb.0:
+; CHECK-NEXT:    vpxor %xmm4, %xmm4, %xmm4
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm5 = xmm2[0],xmm4[1],xmm2[2],xmm4[3],xmm2[4],xmm4[5],xmm2[6],xmm4[7]
 ; CHECK-NEXT:    vpor %xmm1, %xmm0, %xmm0
-; CHECK-NEXT:    vpmovzxwd {{.*#+}} ymm0 = xmm0[0],zero,xmm0[1],zero,xmm0[2],zero,xmm0[3],zero,xmm0[4],zero,xmm0[5],zero,xmm0[6],zero,xmm0[7],zero
-; CHECK-NEXT:    vpmovzxwd {{.*#+}} ymm1 = xmm2[0],zero,xmm2[1],zero,xmm2[2],zero,xmm2[3],zero,xmm2[4],zero,xmm2[5],zero,xmm2[6],zero,xmm2[7],zero
-; CHECK-NEXT:    vpsllvd %ymm1, %ymm0, %ymm0
-; CHECK-NEXT:    vpshufb {{.*#+}} ymm0 = ymm0[0,1,4,5,8,9,12,13,u,u,u,u,u,u,u,u,16,17,20,21,24,25,28,29,u,u,u,u,u,u,u,u]
-; CHECK-NEXT:    vpermq {{.*#+}} ymm0 = ymm0[0,2,2,3]
+; CHECK-NEXT:    vpsllvd %xmm5, %xmm0, %xmm1
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm0 = xmm4[0],xmm0[1],xmm4[2],xmm0[3],xmm4[4],xmm0[5],xmm4[6],xmm0[7]
+; CHECK-NEXT:    vpsrld $16, %xmm2, %xmm2
+; CHECK-NEXT:    vpsllvd %xmm2, %xmm0, %xmm0
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm0 = xmm1[0],xmm0[1],xmm1[2],xmm0[3],xmm1[4],xmm0[5],xmm1[6],xmm0[7]
 ; CHECK-NEXT:    vpor %xmm3, %xmm0, %xmm0
-; CHECK-NEXT:    vzeroupper
 ; CHECK-NEXT:    retq
   %sh1 = shl <8 x i16> %x0, %y
   %sh2 = shl <8 x i16> %x1, %y
@@ -323,14 +325,15 @@ define i32 @xor_lshr_commute1(i32 %x0, i32 %x1, i32 %y, i32 %z) {
 define <8 x i16> @xor_lshr_commute2(<8 x i16> %x0, <8 x i16> %x1, <8 x i16> %y, <8 x i16> %z) {
 ; CHECK-LABEL: xor_lshr_commute2:
 ; CHECK:       # %bb.0:
+; CHECK-NEXT:    vpxor %xmm4, %xmm4, %xmm4
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm5 = xmm2[0],xmm4[1],xmm2[2],xmm4[3],xmm2[4],xmm4[5],xmm2[6],xmm4[7]
 ; CHECK-NEXT:    vpxor %xmm1, %xmm0, %xmm0
-; CHECK-NEXT:    vpmovzxwd {{.*#+}} ymm0 = xmm0[0],zero,xmm0[1],zero,xmm0[2],zero,xmm0[3],zero,xmm0[4],zero,xmm0[5],zero,xmm0[6],zero,xmm0[7],zero
-; CHECK-NEXT:    vpmovzxwd {{.*#+}} ymm1 = xmm2[0],zero,xmm2[1],zero,xmm2[2],zero,xmm2[3],zero,xmm2[4],zero,xmm2[5],zero,xmm2[6],zero,xmm2[7],zero
-; CHECK-NEXT:    vpsrlvd %ymm1, %ymm0, %ymm0
-; CHECK-NEXT:    vextracti128 $1, %ymm0, %xmm1
-; CHECK-NEXT:    vpackusdw %xmm1, %xmm0, %xmm0
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm1 = xmm0[0],xmm4[1],xmm0[2],xmm4[3],xmm0[4],xmm4[5],xmm0[6],xmm4[7]
+; CHECK-NEXT:    vpsrlvd %xmm5, %xmm1, %xmm1
+; CHECK-NEXT:    vpsrld $16, %xmm2, %xmm2
+; CHECK-NEXT:    vpsrlvd %xmm2, %xmm0, %xmm0
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm0 = xmm1[0],xmm0[1],xmm1[2],xmm0[3],xmm1[4],xmm0[5],xmm1[6],xmm0[7]
 ; CHECK-NEXT:    vpxor %xmm3, %xmm0, %xmm0
-; CHECK-NEXT:    vzeroupper
 ; CHECK-NEXT:    retq
   %sh1 = lshr <8 x i16> %x0, %y
   %sh2 = lshr <8 x i16> %x1, %y
@@ -492,14 +495,15 @@ define <2 x i64> @xor_shl_commute2(<2 x i64> %x0, <2 x i64> %x1, <2 x i64> %y, <
 define <8 x i16> @xor_shl_commute3(<8 x i16> %x0, <8 x i16> %x1, <8 x i16> %y, <8 x i16> %z) {
 ; CHECK-LABEL: xor_shl_commute3:
 ; CHECK:       # %bb.0:
+; CHECK-NEXT:    vpxor %xmm4, %xmm4, %xmm4
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm5 = xmm2[0],xmm4[1],xmm2[2],xmm4[3],xmm2[4],xmm4[5],xmm2[6],xmm4[7]
 ; CHECK-NEXT:    vpxor %xmm1, %xmm0, %xmm0
-; CHECK-NEXT:    vpmovzxwd {{.*#+}} ymm0 = xmm0[0],zero,xmm0[1],zero,xmm0[2],zero,xmm0[3],zero,xmm0[4],zero,xmm0[5],zero,xmm0[6],zero,xmm0[7],zero
-; CHECK-NEXT:    vpmovzxwd {{.*#+}} ymm1 = xmm2[0],zero,xmm2[1],zero,xmm2[2],zero,xmm2[3],zero,xmm2[4],zero,xmm2[5],zero,xmm2[6],zero,xmm2[7],zero
-; CHECK-NEXT:    vpsllvd %ymm1, %ymm0, %ymm0
-; CHECK-NEXT:    vpshufb {{.*#+}} ymm0 = ymm0[0,1,4,5,8,9,12,13,u,u,u,u,u,u,u,u,16,17,20,21,24,25,28,29,u,u,u,u,u,u,u,u]
-; CHECK-NEXT:    vpermq {{.*#+}} ymm0 = ymm0[0,2,2,3]
+; CHECK-NEXT:    vpsllvd %xmm5, %xmm0, %xmm1
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm0 = xmm4[0],xmm0[1],xmm4[2],xmm0[3],xmm4[4],xmm0[5],xmm4[6],xmm0[7]
+; CHECK-NEXT:    vpsrld $16, %xmm2, %xmm2
+; CHECK-NEXT:    vpsllvd %xmm2, %xmm0, %xmm0
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm0 = xmm1[0],xmm0[1],xmm1[2],xmm0[3],xmm1[4],xmm0[5],xmm1[6],xmm0[7]
 ; CHECK-NEXT:    vpxor %xmm3, %xmm0, %xmm0
-; CHECK-NEXT:    vzeroupper
 ; CHECK-NEXT:    retq
   %sh1 = shl <8 x i16> %x0, %y
   %sh2 = shl <8 x i16> %x1, %y
@@ -607,14 +611,15 @@ define i32 @and_lshr_commute1(i32 %x0, i32 %x1, i32 %y, i32 %z) {
 define <8 x i16> @and_lshr_commute2(<8 x i16> %x0, <8 x i16> %x1, <8 x i16> %y, <8 x i16> %z) {
 ; CHECK-LABEL: and_lshr_commute2:
 ; CHECK:       # %bb.0:
+; CHECK-NEXT:    vpxor %xmm4, %xmm4, %xmm4
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm5 = xmm2[0],xmm4[1],xmm2[2],xmm4[3],xmm2[4],xmm4[5],xmm2[6],xmm4[7]
 ; CHECK-NEXT:    vpand %xmm1, %xmm0, %xmm0
-; CHECK-NEXT:    vpmovzxwd {{.*#+}} ymm0 = xmm0[0],zero,xmm0[1],zero,xmm0[2],zero,xmm0[3],zero,xmm0[4],zero,xmm0[5],zero,xmm0[6],zero,xmm0[7],zero
-; CHECK-NEXT:    vpmovzxwd {{.*#+}} ymm1 = xmm2[0],zero,xmm2[1],zero,xmm2[2],zero,xmm2[3],zero,xmm2[4],zero,xmm2[5],zero,xmm2[6],zero,xmm2[7],zero
-; CHECK-NEXT:    vpsrlvd %ymm1, %ymm0, %ymm0
-; CHECK-NEXT:    vextracti128 $1, %ymm0, %xmm1
-; CHECK-NEXT:    vpackusdw %xmm1, %xmm0, %xmm0
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm1 = xmm0[0],xmm4[1],xmm0[2],xmm4[3],xmm0[4],xmm4[5],xmm0[6],xmm4[7]
+; CHECK-NEXT:    vpsrlvd %xmm5, %xmm1, %xmm1
+; CHECK-NEXT:    vpsrld $16, %xmm2, %xmm2
+; CHECK-NEXT:    vpsrlvd %xmm2, %xmm0, %xmm0
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm0 = xmm1[0],xmm0[1],xmm1[2],xmm0[3],xmm1[4],xmm0[5],xmm1[6],xmm0[7]
 ; CHECK-NEXT:    vpand %xmm3, %xmm0, %xmm0
-; CHECK-NEXT:    vzeroupper
 ; CHECK-NEXT:    retq
   %sh1 = lshr <8 x i16> %x0, %y
   %sh2 = lshr <8 x i16> %x1, %y
@@ -776,14 +781,15 @@ define <2 x i64> @and_shl_commute2(<2 x i64> %x0, <2 x i64> %x1, <2 x i64> %y, <
 define <8 x i16> @and_shl_commute3(<8 x i16> %x0, <8 x i16> %x1, <8 x i16> %y, <8 x i16> %z) {
 ; CHECK-LABEL: and_shl_commute3:
 ; CHECK:       # %bb.0:
+; CHECK-NEXT:    vpxor %xmm4, %xmm4, %xmm4
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm5 = xmm2[0],xmm4[1],xmm2[2],xmm4[3],xmm2[4],xmm4[5],xmm2[6],xmm4[7]
 ; CHECK-NEXT:    vpand %xmm1, %xmm0, %xmm0
-; CHECK-NEXT:    vpmovzxwd {{.*#+}} ymm0 = xmm0[0],zero,xmm0[1],zero,xmm0[2],zero,xmm0[3],zero,xmm0[4],zero,xmm0[5],zero,xmm0[6],zero,xmm0[7],zero
-; CHECK-NEXT:    vpmovzxwd {{.*#+}} ymm1 = xmm2[0],zero,xmm2[1],zero,xmm2[2],zero,xmm2[3],zero,xmm2[4],zero,xmm2[5],zero,xmm2[6],zero,xmm2[7],zero
-; CHECK-NEXT:    vpsllvd %ymm1, %ymm0, %ymm0
-; CHECK-NEXT:    vpshufb {{.*#+}} ymm0 = ymm0[0,1,4,5,8,9,12,13,u,u,u,u,u,u,u,u,16,17,20,21,24,25,28,29,u,u,u,u,u,u,u,u]
-; CHECK-NEXT:    vpermq {{.*#+}} ymm0 = ymm0[0,2,2,3]
+; CHECK-NEXT:    vpsllvd %xmm5, %xmm0, %xmm1
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm0 = xmm4[0],xmm0[1],xmm4[2],xmm0[3],xmm4[4],xmm0[5],xmm4[6],xmm0[7]
+; CHECK-NEXT:    vpsrld $16, %xmm2, %xmm2
+; CHECK-NEXT:    vpsllvd %xmm2, %xmm0, %xmm0
+; CHECK-NEXT:    vpblendw {{.*#+}} xmm0 = xmm1[0],xmm0[1],xmm1[2],xmm0[3],xmm1[4],xmm0[5],xmm1[6],xmm0[7]
 ; CHECK-NEXT:    vpand %xmm3, %xmm0, %xmm0
-; CHECK-NEXT:    vzeroupper
 ; CHECK-NEXT:    retq
   %sh1 = shl <8 x i16> %x0, %y
   %sh2 = shl <8 x i16> %x1, %y
